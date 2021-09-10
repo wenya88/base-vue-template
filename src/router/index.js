@@ -1,30 +1,42 @@
-import Vue from "vue";
-import VueRouter from "vue-router";
-import Home from "../views/Home.vue";
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import { routes } from './routes'
 
-Vue.use(VueRouter);
-
-const routes = [
-  {
-    path: "/",
-    name: "Home",
-    component: Home,
-  },
-  {
-    path: "/about",
-    name: "About",
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () =>
-      import(/* webpackChunkName: "about" */ "../views/About.vue"),
-  },
-];
+Vue.use(VueRouter)
 
 const router = new VueRouter({
-  mode: "history",
+  mode: 'history',
   base: process.env.BASE_URL,
-  routes,
-});
+  routes
+})
 
-export default router;
+const routerPush = VueRouter.prototype.push
+VueRouter.prototype.push = function push(location) {
+  return routerPush.call(this, location).catch(error => error)
+}
+
+/* 路由异常错误处理，尝试解析一个异步组件时发生错误，重新渲染目标页面 */
+router.onError(error => {
+  const pattern = /Loading chunk (\d)+ failed/g
+  const isChunkLoadFailed = error.message.match(pattern)
+  const targetPath = router.history.pending.fullPath
+  if (isChunkLoadFailed) {
+    router.replace(targetPath)
+  }
+})
+
+//导航守卫
+router.beforeEach((to, from, next) => {
+  if (!sessionStorage.getItem('TOKEN') && to.path != '/login') {
+    next({ path: '/login' })
+  } else {
+    // 错误页面
+    if (to.matched.length === 0) {
+      next({ path: '/404' })
+    } else {
+      next()
+    }
+  }
+})
+
+export default router
