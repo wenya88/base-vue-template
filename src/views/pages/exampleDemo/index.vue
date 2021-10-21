@@ -1,6 +1,6 @@
 <template>
   <section>
-    Example
+    示例组件
     <SubComponent />
   </section>
 </template>
